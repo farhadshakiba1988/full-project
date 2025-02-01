@@ -1,0 +1,60 @@
+services:
+  app:
+    build:
+      context: ./backend
+    container_name: app
+    command: [ "/wait-for-it.sh", "db", "/entrypoint.sh" ]
+    ports:
+      - 8000
+    volumes:
+      - ./staticfiles:/app/staticfiles
+      - ./media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - POSTGRES_DB=test
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=123@456
+    networks:
+      - backend
+  db:
+    image: postgres:16-alpine
+    container_name: db
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U test" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - '5433:5432'
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=test
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=123@456
+    networks:
+      - backend
+
+  nginx:
+    build: ./backend/nginx
+    container_name: nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - app
+    volumes:
+      - ./backend/nginx:/etc/nginx/conf.d
+      - ./backend/staticfiles:/app/staticfiles
+      - ./backend/media:/app/media
+    networks:
+      - backend
+
+volumes:
+  static_volume:
+  postgres-data:
+
+networks:
+  backend:
+    driver: bridge

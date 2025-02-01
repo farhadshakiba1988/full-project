@@ -1,14 +1,20 @@
-# Backend Dockerfile
-FROM python:3.9
+FROM i53051287x/farhad-base:1
 
-WORKDIR /app/backend
+COPY requirements.txt /app/requirements.txt
+RUN /py/bin/pip install -r /app/requirements.txt
 
-# Install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY . /app
+WORKDIR /app
+EXPOSE 8000
 
-# Copy project
-COPY .. .
+ENV PATH="/py/bin:$PATH"
 
-# Run migrations and start server
-CMD python manage.py migrate && python manage.py runserver 0.0.0.0:8000
+COPY wait-for-it.sh /wait-for-it.sh
+RUN chmod +x /wait-for-it.sh
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+COPY ./staticfiles /app/staticfiles
+
+CMD ["/wait-for-it.sh", "db", "/entrypoint.sh"]
